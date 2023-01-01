@@ -31,7 +31,7 @@ func HashPassword(password string) string {
 	return string(bytes)
 }
 
-func VerifyPassword(providedPassword string, userPassword string) (bool, string) {
+func VerifyPassword(userPassword string, providedPassword string) (bool, string) {
 	err := bcrypt.CompareHashAndPassword([]byte(providedPassword), []byte(userPassword))
 	check := true
 	msg := ""
@@ -72,10 +72,12 @@ func Signup() gin.HandlerFunc {
 		if err != nil {
 			log.Panic(err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error occured while checking for the phone."})
+			return
 		}
 
 		if count > 0 {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "This email or phone number is existed."})
+			return
 		}
 
 		user.CreatedAt, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
@@ -114,6 +116,10 @@ func Login() gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Email or password is incorrect"})
 			return
 		}
+		// password := HashPassword(*user.Password)
+		// user.Password = &password
+		// fmt.Println(*user.Password)
+		// fmt.Println(*foundUser.Password)
 		passwordIsValid, msg := VerifyPassword(*user.Password, *foundUser.Password)
 
 		if passwordIsValid != true {
