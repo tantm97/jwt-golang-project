@@ -20,3 +20,8 @@ type User struct {
 	UpdateAt     time.Time          `json:"updated_at"`
 	UserId       string             `json:"user_id"`
 }
+
+type AuthUser struct {
+	Email    *string `json:"email" binding:"email,required"`
+	Password *string `json:"password" binding:"required,min=6"`
+}
