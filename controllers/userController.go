@@ -37,7 +37,7 @@ func VerifyPassword(userPassword string, providedPassword string) (bool, string)
 	msg := ""
 
 	if err != nil {
-		msg = fmt.Sprint("email or password is incorrect")
+		msg = fmt.Sprint("Password is incorrect")
 		check = false
 	}
 	return check, msg
@@ -62,10 +62,13 @@ func Signup() gin.HandlerFunc {
 		if err != nil {
 			log.Panic(err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error occured while checking for the email."})
+			return
 		}
 
-		password := HashPassword(*user.Password)
-		user.Password = &password
+		if count > 0 {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "This email is existed."})
+			return
+		}
 
 		count, err = userCollection.CountDocuments(ctx, bson.M{"phone": user.Phone})
 		defer cancel()
@@ -76,9 +79,12 @@ func Signup() gin.HandlerFunc {
 		}
 
 		if count > 0 {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "This email or phone number is existed."})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "This phone number is existed."})
 			return
 		}
+
+		password := HashPassword(*user.Password)
+		user.Password = &password
 
 		user.CreatedAt, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
 		user.UpdateAt, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
@@ -113,7 +119,7 @@ func Login() gin.HandlerFunc {
 		err := userCollection.FindOne(ctx, bson.M{"email": authUser.Email}).Decode(&foundUser)
 		defer cancel()
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Email or password is incorrect"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "User not found"})
 			return
 		}
 
@@ -121,11 +127,6 @@ func Login() gin.HandlerFunc {
 
 		if passwordIsValid != true {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-			return
-		}
-
-		if foundUser.Email == nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "user not found"})
 			return
 		}
 
